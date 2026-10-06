@@ -1,438 +1,171 @@
 import 'package:flutter/material.dart';
-import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
-
-import '../l10n/l10n.dart';
-import '../models/exercise.dart';
-import '../state/fit_state.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_theme.dart';
-import '../widgets/charts.dart';
-import '../widgets/entrance.dart';
-import '../widgets/exercise_media.dart';
-import '../widgets/glass.dart';
-import '../widgets/home_folder.dart';
-import '../widgets/svg_icon.dart';
-import '../widgets/ui_kit.dart';
-import 'progress_screen.dart';
+import '../genx/genx_program.dart';
+import 'genx_workout_screen.dart';
+import 'genx_history_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final gc = context.gc;
-    final recommended = fit.recommendedExercises(8);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
-    return RiseScope(
-      id: 'home',
-      child: SafeArea(
-      bottom: false,
-      child: SingleChildScrollView(
-        key: const PageStorageKey('home'),
-        clipBehavior: Clip.none,
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 116),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: riseAll([
-            _topBar(gc),
-            const SizedBox(height: 20),
-            if (fit.showFocus || fit.todayRoutine?.exerciseIds.isNotEmpty == true) ...[
-              _hero(context, gc),
-              const SizedBox(height: 14),
-            ],
-            _weekCard(context, gc),
-            if (fit.photoDue) ...[
-              const SizedBox(height: 14),
-              _photoNudge(gc),
-            ],
-            const SizedBox(height: 30),
-            _heading(gc, t.thisWeek),
-            const SizedBox(height: 14),
-            _weekStats(context, gc),
-            const SizedBox(height: 30),
-            _heading(gc, t.activityLabel, onMore: fit.goProgress),
-            const SizedBox(height: 14),
-            SoftCard(
-              radius: 22,
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-              child: Heatmap(
-                levels: fit.heatmapWeeks,
-                firstDay: fit.heatmapWeekDate(0),
-                labels: fit.heatmapLabels,
-                onTapDay: (i) => showDaySheet(context, fit.heatmapWeekDate(i)),
-              ),
-            ),
-            if (fit.showRecommended && recommended.isNotEmpty) ...[
-              const SizedBox(height: 30),
-              _heading(gc, t.recommended, onMore: fit.goExercises),
-              const SizedBox(height: 14),
-              SizedBox(
-                height: 158,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: recommended.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 12),
-                  itemBuilder: (_, i) => _recCard(gc, recommended[i]),
+    final todayIndex = DateTime.now().weekday - 1;
+    final todayWorkout = genXProgram[todayIndex];
+
+    return Scaffold(
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              sliver: SliverToBoxAdapter(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'GEN.X PHYSIQUE',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.8,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Build your physique.',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: colors.primaryContainer,
+                      child: Icon(
+                        Icons.person_outline_rounded,
+                        color: colors.onPrimaryContainer,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-            const SizedBox(height: 30),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: HomeFolder(
-                    title: _tc(t.routines),
-                    detail: t.routineCount(fit.routines.length),
-                    peek: const RoutinesPeek(),
-                    onTap: fit.goRoutines,
+            ),
+
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+              sliver: SliverToBoxAdapter(
+                child: _TodayWorkoutCard(
+                  colors: colors,
+                  theme: theme,
+                  workout: todayWorkout,
+                ),
+              ),
+            ),
+
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+              sliver: SliverToBoxAdapter(
+                child: Text(
+                  'This Week',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: HomeFolder(
-                    title: _tc(t.tools),
-                    detail: t.calculatorsInside,
-                    peek: const ToolsPeek(),
-                    onTap: fit.goTools,
+              ),
+            ),
+
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              sliver: SliverToBoxAdapter(
+                child: _WeeklySplit(
+                  colors: colors,
+                  theme: theme,
+                ),
+              ),
+            ),
+
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+              sliver: SliverToBoxAdapter(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _StatCard(
+                        title: 'Workouts',
+                        value: '0',
+                        subtitle: 'This week',
+                        icon: Icons.fitness_center_rounded,
+                        colors: colors,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatCard(
+                        title: 'Streak',
+                        value: '0',
+                        subtitle: 'Days',
+                        icon: Icons.local_fire_department_rounded,
+                        colors: colors,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
+              sliver: SliverToBoxAdapter(
+                child: Text(
+                  'Quick Access',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: HomeFolder(
-                    title: _tc(t.journal),
-                    detail: t.noteCount(fit.notes.length),
-                    peek: const NotesPeek(),
-                    onTap: fit.goNotes,
-                  ),
+              ),
+            ),
+
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    _QuickAction(
+                      icon: Icons.menu_book_rounded,
+                      title: 'Exercise Library',
+                      subtitle: 'Browse exercises and techniques',
+                      colors: colors,
+                    ),
+                    const SizedBox(height: 10),
+                    _QuickAction(
+                      icon: Icons.history_rounded,
+                      title: 'Workout History',
+                      subtitle: 'Track your previous sessions',
+                      colors: colors,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const GenXHistoryScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    _QuickAction(
+                      icon: Icons.insights_rounded,
+                      title: 'Progress',
+                      subtitle: 'Monitor your physique journey',
+                      colors: colors,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ]),
-        ),
-      ),
-      ),
-    );
-  }
-
-  Widget _topBar(GymColors gc) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(t.today.toUpperCase(),
-                  style: AppTheme.f(10.5,
-                      weight: FontWeight.w700, color: gc.textTertiary, letterSpacing: 1.4)),
-              const SizedBox(height: 3),
-              Text(t.longDate(DateTime.now()),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.f(21, color: gc.text)),
-            ],
-          ),
-        ),
-        const SizedBox(width: 12),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: fit.goProgress,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-            decoration: BoxDecoration(color: gc.bgRaised, borderRadius: BorderRadius.circular(100)),
-            child: Row(
-              children: [
-                SvgPathIcon(Ic.flame, size: 15, color: gc.accent),
-                const SizedBox(width: 6),
-                Text('${fit.currentStreak}',
-                    style: AppTheme.f(14, weight: FontWeight.w800, color: gc.text)),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  String _tc(String s) => titleCase(s);
-
-  Widget _heading(GymColors gc, String title, {VoidCallback? onMore}) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onMore,
-      child: Row(
-        children: [
-          Text(_tc(title), style: AppTheme.f(19, color: gc.text)),
-          const Spacer(),
-          if (onMore != null)
-            Icon(PhosphorIconsBold.caretRight, size: 14, color: gc.textTertiary),
-        ],
-      ),
-    );
-  }
-
-  Widget _hero(BuildContext context, GymColors gc) {
-    final routine = fit.todayRoutine;
-    final focus = fit.suggestedFocus;
-    final isRoutine = routine != null && routine.exerciseIds.isNotEmpty;
-    final label = isRoutine ? t.todaysRoutine : t.todaysFocus;
-    final title = isRoutine ? fit.routineTitle(routine) : focus.title;
-    final today = fit.routinesOn(DateTime.now());
-    final subtitle = isRoutine
-        ? [
-            t.exerciseCount(routine.exerciseIds.length),
-            if (today.length > 1) t.routineOfDay(today.indexOf(routine) + 1, today.length),
-          ].join(' · ')
-        : (fit.hasData
-            ? '${focus.subtitle} · ${t.exerciseCount(fit.getFilteredExercises(focus.muscles).length)}'
-            : t.firstSessionHint);
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(26),
-      child: Container(
-        decoration: BoxDecoration(
-          color: gc.bgRaised,
-          borderRadius: BorderRadius.circular(26),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              left: -52,
-              top: 34,
-              child: Container(
-                width: 176,
-                height: 176,
-                decoration: BoxDecoration(color: gc.accentSoft, shape: BoxShape.circle),
               ),
-            ),
-            Positioned(
-              left: 150,
-              top: -44,
-              child: Container(
-                width: 92,
-                height: 92,
-                decoration: BoxDecoration(color: gc.emberSoft, shape: BoxShape.circle),
-              ),
-            ),
-            Positioned(
-              right: 4,
-              top: 12,
-              bottom: 76,
-              child: Opacity(
-                opacity: 0.6,
-                child: Image.asset('assets/img/runner.png', fit: BoxFit.fitHeight),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label.toUpperCase(),
-                      style: AppTheme.f(10.5,
-                          weight: FontWeight.w700, color: gc.textTertiary, letterSpacing: 1.4)),
-                  const SizedBox(height: 9),
-                  Padding(
-                    padding: const EdgeInsets.only(right: 96),
-                    child: Text(title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTheme.f(30,
-                            weight: FontWeight.w800, color: gc.text, height: 1.1)),
-                  ),
-                  const SizedBox(height: 7),
-                  Text(subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTheme.f(13, weight: FontWeight.w500, color: gc.textSecondary)),
-                  const SizedBox(height: 20),
-                  PrimaryButton(
-                    label: t.startWorkout,
-                    icon: Ic.play,
-                    height: 52,
-                    onTap: isRoutine ? () => fit.startRoutine(routine) : fit.startFocusWorkout,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _weekCard(BuildContext context, GymColors gc) {
-    return SoftCard(
-      radius: 22,
-      padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [for (int i = 0; i < 7; i++) _weekDay(context, gc, i)],
-      ),
-    );
-  }
-
-  Widget _weekDay(BuildContext context, GymColors gc, int i) {
-    final done = fit.isDayDone(i);
-    final isToday = i == fit.todayIndex;
-    final isFuture = i > fit.todayIndex;
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: isFuture
-          ? null
-          : fit.isSessionDay(i)
-              ? () => showDaySheet(context, fit.dateForWeekday(i))
-              : () => fit.toggleCheckin(i),
-      child: Opacity(
-        opacity: isFuture ? 0.5 : 1,
-        child: Column(
-          children: [
-            Text(t.weekdayInitial(fit.weekdayAt(i)),
-                style: AppTheme.f(10,
-                    weight: FontWeight.w700,
-                    color: isToday ? gc.text : gc.textTertiary,
-                    letterSpacing: 0.5)),
-            const SizedBox(height: 9),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: done ? gc.ember : gc.bgRaised2,
-                shape: BoxShape.circle,
-                border: isToday && !done ? Border.all(color: gc.ember, width: 2) : null,
-              ),
-              child:
-                  done ? Center(child: SvgPathIcon(Ic.checkBold, size: 13, color: gc.onEmber)) : null,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _weekStats(BuildContext context, GymColors gc) {
-    return SoftCard(
-      radius: 22,
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: _stat(gc, t.volume, fit.volumeValue(fit.volumeThisWeekKg),
-                      unit: fit.volumeUnit),
-                ),
-                Expanded(child: _stat(gc, t.setsToday, '${fit.setsToday}')),
-                Expanded(child: _stat(gc, t.prs, '${fit.prsThisWeek}')),
-              ],
-            ),
-          ),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => showWeeklyGoalSheet(context),
-            child: Column(
-              children: [
-                GoalRing(pct: fit.goalPct.toDouble(), size: 44),
-                const SizedBox(height: 7),
-                Text(t.goalDaysShort(fit.daysDoneThisWeek, fit.weeklyTarget),
-                    style: AppTheme.f(11, weight: FontWeight.w700, color: gc.textSecondary)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _stat(GymColors gc, String label, String value, {String unit = ''}) {
-    return Padding(
-      padding: const EdgeInsetsDirectional.only(end: 8),
-      child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FitText(label.toUpperCase(),
-            style: AppTheme.f(9.5,
-                weight: FontWeight.w600, color: gc.textTertiary, letterSpacing: 0.9)),
-        const SizedBox(height: 6),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: RollIn(value, style: AppTheme.f(23, weight: FontWeight.w800, color: gc.text)),
-              ),
-            ),
-            if (unit.isNotEmpty) ...[
-              const SizedBox(width: 3),
-              Text(unit,
-                  style: AppTheme.f(11, weight: FontWeight.w600, color: gc.textSecondary)),
-            ],
-          ],
-        ),
-      ],
-      ),
-    );
-  }
-
-  Widget _photoNudge(GymColors gc) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: fit.goMoments,
-      child: SoftCard(
-        radius: 22,
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-        child: Row(
-          children: [
-            Icon(PhosphorIconsRegular.camera, size: 19, color: gc.accent),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(t.photoDueNow, style: AppTheme.f(14.5, color: gc.text)),
-                  const SizedBox(height: 2),
-                  Text(t.photoInterval(fit.photoIntervalDays),
-                      style: AppTheme.f(12, weight: FontWeight.w500, color: gc.textSecondary)),
-                ],
-              ),
-            ),
-            Icon(PhosphorIconsBold.caretRight, size: 14, color: gc.textTertiary),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _recCard(GymColors gc, Exercise ex) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => fit.openExercise(ex.id),
-      child: Container(
-        width: 132,
-        padding: const EdgeInsets.all(9),
-        decoration: BoxDecoration(
-          color: gc.bgRaised,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ExerciseMedia(ex: ex, height: 88, radius: 12),
-            const SizedBox(height: 9),
-            Expanded(
-              child: Text(exerciseName(ex),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.f(12, weight: FontWeight.w600, color: gc.text, height: 1.25)),
             ),
           ],
         ),
@@ -441,49 +174,274 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-void showWeeklyGoalSheet(BuildContext context) {
-  final gc = context.gc;
-  showAppSheet<void>(
-    context: context,
-    backgroundColor: Colors.transparent,
-    builder: (sheet) => StatefulBuilder(
-      builder: (sheet, setSheet) => Container(
-        padding: sheetPad(sheet),
-        decoration: BoxDecoration(
-          color: gc.bgRaised,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        ),
+class _TodayWorkoutCard extends StatelessWidget {
+  const _TodayWorkoutCard({
+    required this.colors,
+    required this.theme,
+    required this.workout,
+  });
+
+  final ColorScheme colors;
+  final ThemeData theme;
+  final GenXDay workout;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SheetHandle(),
-            const SizedBox(height: 20),
-            Text(t.weeklyGoal,
-                textAlign: TextAlign.center,
-                style: AppTheme.f(19, color: gc.text)),
-            const SizedBox(height: 6),
-            Text(t.sessionsLogged(fit.sessionsThisWeek),
-                textAlign: TextAlign.center,
-                style: AppTheme.f(12.5, weight: FontWeight.w500, color: gc.textSecondary)),
-            const SizedBox(height: 20),
-            Center(
-              child: StepperControl(
-                value: t.perWeek(fit.profile.weeklyGoal),
-                minWidth: 148,
-                onDec: () => setSheet(() => fit.updateProfile(weeklyGoalDelta: -1)),
-                onInc: () => setSheet(() => fit.updateProfile(weeklyGoalDelta: 1)),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colors.primaryContainer,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    workout.day.toUpperCase(),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colors.onPrimaryContainer,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  Icons.calendar_today_rounded,
+                  size: 18,
+                  color: colors.onSurfaceVariant,
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Text(
+              workout.title,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 16),
-            Text(t.onbGoalWhy,
-                textAlign: TextAlign.center,
-                style: AppTheme.f(12, weight: FontWeight.w500, color: gc.textSecondary, height: 1.45)),
-            const SizedBox(height: 22),
-            PrimaryButton(label: t.done, onTap: () => Navigator.of(sheet).pop()),
+            const SizedBox(height: 6),
+            Text(
+              workout.focus,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Icon(
+                  Icons.fitness_center_rounded,
+                  size: 18,
+                  color: colors.primary,
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  '${workout.exercises.length} exercises',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 18),
+                Icon(
+                  Icons.timer_outlined,
+                  size: 18,
+                  color: colors.primary,
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  '~50 min',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => GenXWorkoutScreen(
+                        workout: workout,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: const Text('START WORKOUT'),
+              ),
+            ),
           ],
         ),
       ),
-    ),
-  );
+    );
+  }
+}
+
+class _WeeklySplit extends StatelessWidget {
+  const _WeeklySplit({
+    required this.colors,
+    required this.theme,
+  });
+
+  final ColorScheme colors;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    const days = [
+      ('M', 'Legs', true),
+      ('T', 'Back', false),
+      ('W', 'Chest', false),
+      ('T', 'Legs', false),
+      ('F', 'Back', false),
+      ('S', 'Chest', false),
+      ('S', 'Rest', false),
+    ];
+
+    return Row(
+      children: days.map((day) {
+        final active = day.$3;
+
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(right: 5),
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 19,
+                  backgroundColor: active
+                      ? colors.primary
+                      : colors.surfaceContainerHighest,
+                  child: Text(
+                    day.$1,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: active
+                          ? colors.onPrimary
+                          : colors.onSurfaceVariant,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  day.$2,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: active ? FontWeight.w800 : FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+    required this.colors,
+  });
+
+  final String title;
+  final String value;
+  final String subtitle;
+  final IconData icon;
+  final ColorScheme colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: colors.primary),
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickAction extends StatelessWidget {
+  const _QuickAction({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.colors,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final ColorScheme colors;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 5,
+        ),
+        leading: CircleAvatar(
+          backgroundColor: colors.secondaryContainer,
+          child: Icon(
+            icon,
+            color: colors.onSecondaryContainer,
+          ),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.chevron_right_rounded),
+      ),
+    );
+  }
 }
